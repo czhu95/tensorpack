@@ -67,3 +67,5 @@ target/
 *.log*
 model-*
 .gitignore
+
+.DS_Store
