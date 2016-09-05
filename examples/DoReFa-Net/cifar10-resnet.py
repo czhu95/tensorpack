@@ -85,11 +85,11 @@ class Model(ModelDesc):
                 else:
                     b1 = l
                 c1 = conv('conv1', b1, out_channel, stride1)
-                c1 = c1.apply(fg)
+                c1 = fg(c1)
                 b2 = BatchNorm('bn2', c1, is_training)
-                b2 = b2.apply(activate)
+                b2 = activate(b2)
                 c2 = conv('conv2', b2, out_channel, 1)
-                c2 = c2.apply(activate)
+                c2 = activate(c2)
 
                 if increase_dim:
                     l = AvgPooling('pool', l, 2)
@@ -100,7 +100,7 @@ class Model(ModelDesc):
 
         l = conv('conv0', image, 16, 1)
         l = BatchNorm('bn0', l, is_training)
-        l = tf.nn.relu(l)
+        l = activate(l)
         l = residual('res1.0', l, first=True)
         for k in range(1, self.n):
             l = residual('res1.{}'.format(k), l)
@@ -115,7 +115,7 @@ class Model(ModelDesc):
         for k in range(1, self.n):
             l = residual('res3.' + str(k), l)
         l = BatchNorm('bnlast', l, is_training)
-        l = l.apply(nonlin)
+        l = nonlin(l)
         # 8,c=64
         l = GlobalAvgPooling('gap', l)
         logits = FullyConnected('linear', l, out_dim=10, nl=tf.identity)
