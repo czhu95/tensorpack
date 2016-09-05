@@ -7,6 +7,7 @@ import numpy as np
 import tensorflow as tf
 import argparse
 import os
+import sys
 
 from tensorpack import *
 from tensorpack.tfutils.symbolic_functions import *
@@ -162,8 +163,12 @@ def get_data(train_or_test):
     return ds
 
 def get_config():
-    logger.auto_set_dir()
-
+    mod = sys.modules['__main__']
+    basename = os.path.basename(mod.__file__)
+    logger.set_logger_dir(
+            os.path.join('train_log',
+                '{}-{}{}{}'.format(basename[:basename.rfind('.')], 
+                BITW, BITA, BITG)))
     # prepare dataset
     dataset_train = get_data('train')
     step_per_epoch = dataset_train.size()
