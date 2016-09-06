@@ -96,7 +96,7 @@ class Model(ModelDesc):
                     l = tf.pad(l, [[0,0], [0,0], [0,0], [in_channel//2, in_channel//2]])
 
                 l = c2 + l
-                l = activate(l)
+                l = fa(l)
                 return l
 
         l = conv('conv0', image, 16, 1)
