@@ -167,7 +167,7 @@ def get_config():
     basename = os.path.basename(mod.__file__)
     logger.set_logger_dir(
             os.path.join('train_log',
-                '{}-{}{}{}-m'.format(basename[:basename.rfind('.')], 
+                '{}-{}{}{}'.format(basename[:basename.rfind('.')],
                 BITW, BITA, BITG)))
     # prepare dataset
     dataset_train = get_data('train')
