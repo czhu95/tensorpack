@@ -4,15 +4,71 @@
 # Author: Yuxin Wu <ppwwyyxx@gmail.com>
 
 from abc import ABCMeta, abstractmethod
+import re
 import tensorflow as tf
 from collections import namedtuple
+import inspect
 
 from ..utils import logger, INPUT_VARS_KEY
 from ..tfutils import *
 
-__all__ = ['ModelDesc', 'InputVar', 'ModelFromMetaGraph']
+__all__ = ['ModelDesc', 'InputVar', 'ModelFromMetaGraph',
+        'get_current_tower_context', 'TowerContext']
 
 InputVar = namedtuple('InputVar', ['type', 'shape', 'name'])
+
+_CurrentTowerContext = None
+
+class TowerContext(object):
+    def __init__(self, tower_name, is_training=None):
+        """ tower_name: 'tower0', 'towerp0', or '' """
+        self._name = tower_name
+        if is_training is None:
+            is_training = not self._name.startswith('towerp')
+        self._is_training = is_training
+
+    @property
+    def is_main_training_tower(self):
+        return self.is_training and (self._name == '' or self._name == 'tower0')
+
+    @property
+    def is_main_tower(self):
+        return self._name == '' or self._name == 'tower0'
+
+    @property
+    def is_training(self):
+        return self._is_training
+
+    def find_tensor_in_main_tower(self, graph, name):
+        if self.is_main_tower:
+            return graph.get_tensor_by_name(name)
+        if name.startswith('towerp'):
+            newname = re.sub('towerp[0-9]+/', '', name)
+            try:
+                return graph.get_tensor_by_name(newname)
+            except KeyError:
+                newname = re.sub('towerp[0-9]+/', 'tower0/', name)
+                return graph.get_tensor_by_name(newname)
+
+    def __enter__(self):
+        global _CurrentTowerContext
+        assert _CurrentTowerContext is None, \
+                "Nesting TowerContext!"
+        _CurrentTowerContext = self
+        if len(self._name):
+            self._scope = tf.name_scope(self._name)
+            return self._scope.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        global _CurrentTowerContext
+        _CurrentTowerContext = None
+        if len(self._name):
+            self._scope.__exit__(exc_type, exc_val, exc_tb)
+        return False
+
+def get_current_tower_context():
+    global _CurrentTowerContext
+    return _CurrentTowerContext
 
 class ModelDesc(object):
     """ Base class for a model description """
@@ -49,7 +105,7 @@ class ModelDesc(object):
     def _get_input_vars(self):
         """:returns: a list of InputVar """
 
-    def build_graph(self, model_inputs, is_training):
+    def build_graph(self, model_inputs):
         """
         Setup the whole graph.
 
@@ -57,10 +113,15 @@ class ModelDesc(object):
         :param is_training: a boolean
         :returns: the cost to minimize. a scalar variable
         """
-        self._build_graph(model_inputs, is_training)
+        if len(inspect.getargspec(self._build_graph).args) == 3:
+            logger.warn("_build_graph(self, input_vars, is_training) is deprecated! \
+Use _build_graph(self, input_vars) and get_current_tower_context().is_training instead.")
+            self._build_graph(model_inputs, get_current_tower_context().is_training)
+        else:
+            self._build_graph(model_inputs)
 
     @abstractmethod
-    def _build_graph(self, inputs, is_training):
+    def _build_graph(self, inputs):
         pass
 
     def get_cost(self):
