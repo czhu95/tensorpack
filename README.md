@@ -15,7 +15,8 @@ See some interesting [examples](examples) to learn about the framework:
 
 Abstract your training task into three components:
 
-1. Model, or graph. `models/` has some scoped abstraction of common models.
+1. Model, or graph. `models/` has some scoped abstraction of common models. This part is roughly an
+	 equivalent of slim/tflearn/tensorlayer.
 	`LinearWrap` and `argscope` makes large models look simpler.
 
 2. Data. tensorpack allows and encourages complex data processing.
@@ -29,9 +30,10 @@ Abstract your training task into three components:
 	+ Print some variables of interest
 	+ Run inference on a test dataset
 	+ Run some operations once a while
+	+ Send the accuracy to your phone
 
 With the above components defined, tensorpack trainer will run the training iterations for you.
-Multi-GPU training is ready to use by simply switching the trainer.
+Multi-GPU training is off-the-shelf by simply switching the trainer.
 
 ## Dependencies:
 
